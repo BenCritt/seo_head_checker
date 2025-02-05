@@ -1,0 +1,261 @@
+<!-- This loads the standard navbar, footer, styles, and scripts shared by every webpage on this site. -->
+{% extends "projects/base.html" %}
+    {% block page_head %}
+    {% block scripts %}
+    <!-- Schema for SEO -->
+    <script type="application/ld+json">
+        {
+          "@context": "https://schema.org",
+          "@type": "SoftwareApplication",
+          "name": "SEO Head Checker",
+          "description": "The SEO Head Checker allows users to analyze the <head> section of webpages for SEO elements, ensuring proper meta tags, canonical tags, Open Graph tags, and more to optimize their website's performance in search engines.",
+          "url": "https://www.bencritt.net/projects/seo-head-checker/",
+          "applicationCategory": "SEO Utility",
+          "operatingSystem": "Web-based",
+          "image": "https://i.imgur.com/9Qlufcf.png",
+          "creator": {
+            "@type": "Person",
+            "name": "Ben Crittenden",
+            "url": "https://www.bencritt.net"
+          },
+          "featureList": [
+            "Analyzes the <head> section of webpages for critical SEO elements.",
+            "Checks for meta tags, canonical tags, Open Graph tags, Twitter Card tags, and more.",
+            "Provides detailed reports on present and missing SEO elements.",
+            "Web-based application accessible from any device with an internet connection.",
+            "Helps optimize websites for better search engine performance."
+          ]
+        }
+        </script>
+    {% endblock scripts %}    
+    {% block styles %} 
+    <!-- Custom CSS styles for the table. -->
+    <style>
+        .centered-content {
+            text-align: center; /* Centers the content */
+        }       
+    </style>
+    {% endblock styles %}
+    {% block meta_tags %}
+    <!-- Meta to prevent caching, which will prevent CSRF token errors. -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <!-- Meta tags providing essential information about the page to search engines. -->
+    <meta name="description" content="Analyze the <head> section of your webpages with the SEO Head Checker Tool. Check for meta tags, canonical tags, Open Graph tags, and other essential SEO elements to optimize your website for search engines.">
+    <meta name="keywords" content="SEO Head Checker, Analyze <head> section, SEO tags checker, meta tags analyzer, canonical tags checker, Open Graph tags, Twitter Card tags, SEO optimization tool, website SEO analysis">
+    <!-- Facebook Meta Tags -->
+    <meta property="og:url" content="https://www.bencritt.net/projects/seo-head-checker/">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="SEO Head Checker">
+    <meta property="og:description" content="Analyze the <head> section of your website with the SEO Head Checker Tool. Check meta tags, canonical tags, Open Graph tags, and other essential SEO elements to optimize your site for search engines.">
+    <meta property="og:image" content="https://i.imgur.com/9Qlufcf.png">
+    <!-- Twitter Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta property="twitter:domain" content="bencritt.net">
+    <meta property="twitter:url" content="https://www.bencritt.net/projects/seo-head-checker/">
+    <meta name="twitter:title" content="SEO Head Checker">
+    <meta name="twitter:description" content="Analyze the <head> section of your website with the SEO Head Checker Tool. Check meta tags, canonical tags, Open Graph tags, and other essential SEO elements to optimize your site for search engines.">
+    <meta name="twitter:image" content="https://i.imgur.com/9Qlufcf.png">
+    <meta name="twitter:creator" content="@bencritt89">
+    {% endblock meta_tags %}
+    {% block link_tags %}
+    <!-- Canonical link to help avoid duplicate content issues. -->
+    <link rel="canonical" href="https://www.bencritt.net/projects/seo-head-checker/">
+    {% endblock link_tags %}
+    {% block title %}SEO Head Checker | Free Tool to Analyze SEO Head Elements{% endblock title %}
+    {% endblock page_head %}
+    <!-- This begins the contents that are unique to this page. -->
+    {% block content %}
+    <main>
+        <center>
+            <h1>SEO Head Checker</h1>
+            <br>
+            <div style="width: 100%; max-width: 500px;">
+                <h2>Instructions</h2>
+                <br>
+                <p>Enter the URL of a sitemap or web page and click the blue "Generate SEO Report" button. You'll see progress update below. Once the green "Download SEO Report" button appears, click it. Your file will be sent to your default downloads folder.</p>
+            </div>
+            <br>
+            <form method="POST" id="sitemap-form" onsubmit="return false;">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button id="seo-head-btn" class="btn btn-primary" type="button" onclick="startProcessing()" aria-label="Generate a detailed SEO report based on the provided sitemap or webpage URL">Generate SEO Report</button>
+            </form>
+            <br>
+            <div style="width: 100%; max-width: 500px;">
+                {% if error %}
+                    <p class="text-danger">{{ error }}</p>
+                {% endif %}
+            </div>
+            <br>
+            <!-- Status and download elements -->
+            <div id="status" class="alert alert-info" style="display: block; width: 100%; max-width: 500px;">Progress: 0%</div>
+            <div style="width: 100%; max-width: 500px;">
+                <a
+                    id="download_link"
+                    style="display: none;"
+                    class="btn btn-success"
+                    href="/projects/seo-head-checker/"
+                    onclick="refreshPageAfterDownload()"
+                    aria-label="Download the generated SEO report"
+                >
+                    Download SEO Report
+                </a>
+            </div>
+            <br>
+            <div style="width: 100%; max-width: 500px;">
+                <h2>Limitations</h2>
+                <br>
+                <p>Due to the limitations of the server, reports are limited to the first 25 pages in the sitemap. Scanning is also slower than it could be. There may also be a slight delay between clicking "Generate SEO Report" and progress beginning. If you don't click the download button after 30 minutes, your CSV file will be deleted from the server and you'll have to resubmit your request.</p>
+            </div>
+        </center>
+    </main>
+    
+    <!-- JavaScript for handling form submission and progress updates. -->
+    <!-- This must be below everything else, which is why it's not with the other script. -->
+    <script>
+        /**
+        * Initiates the sitemap processing by sending the sitemap URL to the server.
+        */
+        async function startProcessing() {
+            // Get the input element for the sitemap URL.
+            const sitemapInput = document.getElementById("sitemap_url");
+            // Check if the input element exists.
+            if (!sitemapInput) {
+                alert("Sitemap URL input field is missing from the page.");
+                // Stop execution if the input field is not found.
+                return;
+            }
+        
+            // Retrieve and trim the value from the input field.
+            const sitemapUrl = sitemapInput.value.trim();
+
+            // Check if the user provided a URL.
+            if (!sitemapUrl) {
+                alert("Sitemap URL is required. Please enter a valid URL.");
+                // Stop execution if the input field is empty.
+                return;
+            }
+        
+            try {
+                 // Send a POST request to start the sitemap processing.
+                const response = await fetch("/start_sitemap_processing/", {
+                    // HTTP POST method.
+                    method: "POST",
+                    headers: {
+                        // Set content type to JSON.
+                        "Content-Type": "application/json",
+                        // Include CSRF token for security.
+                        "X-CSRFToken": "{{ csrf_token }}",
+                    },
+                    // Send the sitemap URL in the request body.
+                    body: JSON.stringify({ sitemap_url: sitemapUrl }),
+                });
+                
+                // Parse the JSON response from the server.
+                const data = await response.json();
+
+                // Check if the server returned an error status.
+                // Status 202 indicates the request was accepted.
+                if (response.status !== 202) {
+                    alert(data.error || "Failed to start processing.");
+                    // Stop execution if an error occurred.
+                    return;
+                }
+        
+                // Extract the task ID from the server's response.
+                const taskId = data.task_id;
+                // Begin polling the server for task status updates.
+                pollTaskStatus(taskId);
+            } catch (error) {
+                // Handle any network or unexpected errors.
+                console.error("Error starting processing:", error);
+                alert("An error occurred while starting the processing task.");
+            }
+        }
+    
+        /**
+        * Polls the server for the status of the sitemap processing task.
+        * taskId - The unique ID of the task being processed.
+        */
+        async function pollTaskStatus(taskId) {
+            // Get the status element and download link elements from the DOM.
+            const statusElement = document.getElementById("status");
+            const downloadLink = document.getElementById("download_link");
+        
+             // Set an interval to repeatedly poll the server for task status every 2 seconds (2000 ms).
+            const interval = setInterval(async () => {
+                // Send a GET request to fetch the current status of the task by its ID.
+                const response = await fetch(`/get_task_status/${taskId}/`);
+                // Parse the response as JSON.
+                const data = await response.json();
+        
+                // Handle the case where the task is not found (HTTP 404).
+                if (response.status === 404) {
+                    // Stop polling if the task does not exist.
+                    clearInterval(interval);
+                    // Display an error message.
+                    statusElement.innerText = "Error: Task not found.";
+                    // Exit the function.
+                    return;
+                }
+        
+                // Handle the case where the task is still processing.
+                if (data.status === "processing") {
+                    // Update the status element with the current progress percentage.
+                    statusElement.innerText = `Progress: ${data.progress || 0}%`;
+                }
+        
+                // Handle the case where the task is completed.
+                if (data.status === "completed") {
+                    // Stop polling when processing is complete.
+                    clearInterval(interval);
+                    // Display completion message.
+                    statusElement.innerText = "Processing completed! 100%";
+
+                    // Update the download link's `href` to point to the task's result file.
+                    downloadLink.href = `/download_task_file/${taskId}/`;
+                    
+                    // Make the download link visible to the user.
+                    downloadLink.style.display = "block";
+
+                // Handle the case where an error occurred during processing.
+                } else if (data.status === "error") {
+                    // Stop polling if an error occurs.
+                    clearInterval(interval);
+                    // Display error message.
+                    statusElement.innerText = "Error occurred during processing.";
+
+                    // Show an alert with the error message or a default message if none is provided.
+                    alert(data.error || "An error occurred.");
+                }
+                // Polling interval set to 2 seconds.
+            }, 2000);
+        }        
+    </script>
+    <script>
+        // Add an event listener to the form to capture the Enter key.
+        document.getElementById("sitemap-form").addEventListener("keydown", function (event) {
+            if (event.key === "Enter") {
+                // Prevent the default form submission.
+                event.preventDefault();
+                // Trigger the button click.
+                document.getElementById("seo-head-btn").click();
+            }
+        });
+    </script>
+    <script>
+        /**
+         * Refreshes the page after the download link is clicked.
+         * The refresh is delayed to ensure the file download starts before the page reloads.
+         */
+        function refreshPageAfterDownload() {
+            setTimeout(() => {
+                // Reload the current page.
+                location.reload();
+                // Delay to allow the download to start.
+            }, 1000);
+        }
+    </script>
+{% endblock content %}
